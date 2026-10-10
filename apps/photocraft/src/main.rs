@@ -236,6 +236,14 @@ fn main() -> eframe::Result {
         std::process::exit(1);
     }
 
+    // Z4K build: the control channel (loopback only, token-protected) is always on, so Claude can
+    // connect to every launch. An explicit `--control` / token still wins.
+    if control_port.is_none() && control_arg_errors.is_empty() {
+        control_port = Some(7878);
+        if control_token.is_none() && control_token_file.is_none() && std::env::var_os("PHOTOCRAFT_CONTROL_TOKEN").is_none() {
+            control_token_file = std::env::var_os("HOME").map(|home| std::path::PathBuf::from(home).join(".local/craft-cli/photocraft-control.token"));
+        }
+    }
     let control = if let Some(port) = control_port {
         let (supplied, token_file) = photocraft_automation::security::token_inputs(control_token, control_token_file);
         let token = match photocraft_automation::security::server_token(supplied.as_deref(), token_file.as_deref()) {
